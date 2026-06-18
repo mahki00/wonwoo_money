@@ -230,11 +230,55 @@ let S={
     {id:'laundry',icon:'👕', name:'빨래정리',        amt:1000, max:1},
     {id:'meal',  icon:'🍳', name:'식사준비',        amt:1000, max:3},
     {id:'play',  icon:'🎮', name:'하율이 놀아주기', amt:1000, max:1},
+    {id:'homework',  icon:'📚', name:'학교 숙제',   amt:1000, max:1},
+    {id:'homeschool',icon:'✏️', name:'홈스쿨 과제', amt:1000, max:1},
   ],
   records:{}
 };
 
-function load(){try{const r=localStorage.getItem(SK);if(!r)return;const d=JSON.parse(r);if(d.goal!=null)S.goal=d.goal;if(d.tasks&&d.tasks.length)S.tasks=d.tasks;if(d.records)S.records=d.records;}catch(e){}}
+// 새로 추가된 기본 항목 (기존 저장 데이터가 있어도 1회 자동 시드)
+const SEED_TASKS=[
+  {id:'homework',  icon:'📚', name:'학교 숙제',   amt:1000, max:1},
+  {id:'homeschool',icon:'✏️', name:'홈스쿨 과제', amt:1000, max:1},
+];
+
+function load(){
+  try{
+    const r=localStorage.getItem(SK);
+    if(r){
+      const d=JSON.parse(r);
+      if(d.goal!=null)S.goal=d.goal;
+      if(d.tasks&&d.tasks.length)S.tasks=d.tasks;
+      if(d.records)S.records=d.records;
+    }
+  }catch(e){}
+  // 신규 항목 1회 시드 (이미 사용 중이던 사용자도 자동 반영)
+  try{
+    if(!localStorage.getItem(SK+'-seed2')){
+      SEED_TASKS.forEach(nt=>{ if(!S.tasks.some(t=>t.id===nt.id)) S.tasks.push(nt); });
+      localStorage.setItem(SK+'-seed2','1');
+      localStorage.setItem(SK,JSON.stringify({goal:S.goal,tasks:S.tasks,records:S.records}));
+    }
+  }catch(e){}
+  // 이름 변경 마이그레이션: 신발 정리 → 정리 정돈 + 금액 0원
+  try{
+    if(!localStorage.getItem(SK+'-rename1')){
+      let changed=false;
+      S.tasks.forEach(t=>{ if(t.name==='신발 정리'){t.name='정리 정돈';t.amt=0;changed=true;} });
+      if(changed) localStorage.setItem(SK,JSON.stringify({goal:S.goal,tasks:S.tasks,records:S.records}));
+      localStorage.setItem(SK+'-rename1','1');
+    }
+  }catch(e){}
+  // 금액 0원 마이그레이션: 정리 정돈
+  try{
+    if(!localStorage.getItem(SK+'-amt1')){
+      let changed=false;
+      S.tasks.forEach(t=>{ if(t.name==='정리 정돈'&&t.amt!==0){t.amt=0;changed=true;} });
+      if(changed) localStorage.setItem(SK,JSON.stringify({goal:S.goal,tasks:S.tasks,records:S.records}));
+      localStorage.setItem(SK+'-amt1','1');
+    }
+  }catch(e){}
+}
 function save(){try{localStorage.setItem(SK,JSON.stringify({goal:S.goal,tasks:S.tasks,records:S.records}));}catch(e){}toast('저장됨 ✓');}
 function toast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1500);}
 function rk(y,m,d,tid){return`${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}-${tid}`;}
